@@ -29,6 +29,9 @@ Contributors:
  Mikhail Gusarov <dottedmag@dottedmag.net>
  Marc Abramowitz <marc@marc-abramowitz.com>
 
+Patched for Paver (adding dry() to modification calls):
+ Lukas Linhart <bugs+paver@almad.net>
+
 Example:
 
 from path import path
@@ -38,6 +41,7 @@ for f in d.files('*.py'):
 
 This module requires Python 2.3 or later.
 """
+
 
 from __future__ import generators
 
@@ -52,6 +56,8 @@ import shutil
 import codecs
 import hashlib
 import errno
+
+from paver.easy import dry
 
 __version__ = '2.4'
 __all__ = ['path']
@@ -928,17 +934,17 @@ class path(_base):
             os.chown(self, uid, gid)
 
     def rename(self, new):
-        os.rename(self, new)
+        dry("rename %s to %s" % (self, new), os.rename, self, new)
 
     def renames(self, new):
-        os.renames(self, new)
+        dry("renames %s to %s" % (self, new), os.renames, self, new)
 
     #
     # --- Create/delete operations on directories
 
     def mkdir(self, mode=0777):
         if not self.exists():
-            os.mkdir(self, mode)
+            dry("mkdir %s (mode %s)" % (self, mode), os.mkdir, self, mode)
 
     def mkdir_p(self, mode=0777):
         try:
@@ -949,7 +955,7 @@ class path(_base):
 
     def makedirs(self, mode=0777):
         if not self.exists():
-            os.makedirs(self, mode)
+            dry("makedirs %s (mode %s)" % (self, mode), os.makedirs, self, mode)
 
     def makedirs_p(self, mode=0777):
         try:
@@ -1042,15 +1048,32 @@ class path(_base):
     #
     # --- High-level functions from shutil
 
-    copyfile = shutil.copyfile
-    copymode = shutil.copymode
-    copystat = shutil.copystat
-    copy = shutil.copy
-    copy2 = shutil.copy2
-    copytree = shutil.copytree
+    def copyfile(self, dst):
+        dry("copyfile %s %s" % (self, dst), shutil.copyfile, self, dst)
+
+    def copymode(self, dst):
+        dry("copymode %s %s" % (self, dst), shutil.copymode, self, dst)
+
+    def copystat(self, dst):
+        dry("copystat %s %s" % (self, dst), shutil.copystat, self, dst)
+
+    def copy(self, dst):
+        dry("copy %s %s" % (self, dst), shutil.copy, self, dst)
+
+    def copy2(self, dst):
+        dry("copy2 %s %s" % (self, dst), shutil.copy2, self, dst)
+
+    def copytree(self, dst, *args, **kw):
+        dry("copytree %s %s" % (self, dst), shutil.copytree,
+            self, dst, *args, **kw)
+
+    def rmtree(self, dst, *args, **kw):
+        dry("rmree %s %s" % (self, dst), shutil.rmtree,
+            self, dst, *args, **kw)
+
     if hasattr(shutil, 'move'):
-        move = shutil.move
-    rmtree = shutil.rmtree
+        def move(self, dst):
+            dry("move %s %s" % (self, dst), shutil.move, self, dst)
 
     def rmtree_p(self):
         try:
